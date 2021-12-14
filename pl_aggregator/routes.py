@@ -1,9 +1,7 @@
-from typing import Optional
-
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, HTMLResponse
 
-from .db_service import get_db_connection
+from .database.db_service import get_db_connection
 
 router = APIRouter()
 

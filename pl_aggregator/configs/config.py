@@ -1,9 +1,11 @@
 from functools import lru_cache
+from typing import List
 
 from pydantic import BaseSettings
 
 
 class Settings(BaseSettings):
+    allowed_hosts: List[str]
     app_name: str
     db_echo: bool
     db_name: str
@@ -12,9 +14,12 @@ class Settings(BaseSettings):
     db_password: str
     db_user: str
     debug: bool
+    fetch_wait_time: int
     host: str
     log_lvl: str
+    minimum_reddit_score: int
     port: int
+    post_days_ttl: int
     version: str
 
     class Config:
