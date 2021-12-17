@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Callable, Awaitable
 
-import httpx
+from .schemas import FetchResult
 
 FetchResults = List[Dict[str, Any]]
 
-ParserFunc = Callable[[httpx.AsyncClient, str], Awaitable[FetchResults]]
+ParserFunc = Callable[[str, int], Awaitable[FetchResults]]

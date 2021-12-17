@@ -1,4 +1,5 @@
 import json
+import time
 from urllib.parse import urlparse, urlunparse, urljoin
 
 import httpx
@@ -13,9 +14,10 @@ possible_tags = {'python', 'c#', 'javascript', 'c++', 'java', 'php', 'kotlin', '
 settings = get_settings()
 
 
-async def get_soup(client: httpx.AsyncClient, url: str) -> BeautifulSoup:
+async def get_soup(url: str) -> BeautifulSoup:
     '''Basic function for bs4-like sources'''
-    r = await client.get(url, headers=heading, timeout=settings.fetch_wait_time)
+    async with httpx.AsyncClient() as client:
+        r = await client.get(url, headers=heading, timeout=settings.fetch_wait_time)
     if r.status_code != 200:
         raise ResponceCodeError(r.status_code)
     content = r.content
@@ -29,8 +31,8 @@ def get_base(link: str) -> str:
     return base
 
 
-async def habr_parser(client: httpx.AsyncClient, url: str) -> FetchResults:
-    soup = await get_soup(client, url)
+async def habr_parser(url: str, source_id: int) -> FetchResults:
+    soup = await get_soup(url)
     articles = soup.findAll('article', class_="post_preview")
     posts = []
 
@@ -43,8 +45,9 @@ async def habr_parser(client: httpx.AsyncClient, url: str) -> FetchResults:
     return posts
 
 
-async def reddit_parser(client: httpx.AsyncClient, url: str) -> FetchResults:
-    r = await client.get(urljoin(url, '.json'), headers=heading, timeout=settings.fetch_wait_time)
+async def reddit_base(url: str, source_id: int) -> FetchResults:
+    async with httpx.AsyncClient() as client:
+        r = await client.get(urljoin(url, '.json'), headers=heading, timeout=settings.fetch_wait_time)
     if r.status_code != 200:
         raise ResponceCodeError(r.status_code)
 
@@ -60,6 +63,8 @@ async def reddit_parser(client: httpx.AsyncClient, url: str) -> FetchResults:
             'title': children[i]['data']['title'],
             'ref': urljoin(base, children[i]['data']['permalink']),
             'tags': None,
+            'sourceid': source_id,
+            'createdts': int(time.time())
         }
         posts.append(instance)
 
@@ -67,3 +72,7 @@ async def reddit_parser(client: httpx.AsyncClient, url: str) -> FetchResults:
         posts = posts[:20]
 
     return posts
+
+
+async def reddit_programming_parser(url: str, source_id: int) -> FetchResults:
+    return await reddit_base(url, source_id)

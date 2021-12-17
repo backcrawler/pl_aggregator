@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse, HTMLResponse
 
-from .database.db_service import get_db_connection
+from .database import get_db_connection
 
 router = APIRouter()
 
@@ -21,5 +21,13 @@ async def test():
         res = await conn.execute(sql_select)
         rows = res.fetchall()
         print(rows)
+
+    return JSONResponse(content={'result': 'ok'}, status_code=200)
+
+
+@router.get('/test-task')
+async def test():
+    from .celerytasks.tasks import fetch_from_resources
+    await fetch_from_resources()
 
     return JSONResponse(content={'result': 'ok'}, status_code=200)
