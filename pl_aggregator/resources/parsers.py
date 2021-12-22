@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from ..interfaces import FetchResults
 from ..configs import get_settings
 from ..exceptions import ResponceCodeError
+from ..schemas import FetchResult
 
 heading = {'User-agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.103 Safari/537.36'}
 possible_tags = {'python', 'c#', 'javascript', 'c++', 'java', 'php', 'kotlin', 'haskell', 'big data'}
@@ -39,7 +40,13 @@ async def habr_parser(url: str, source_id: int) -> FetchResults:
     for article in articles:
         ref = article.find('a', class_="post__title_link")
         base = get_base(url)
-        instance = {'title': ref.text, 'ref': urljoin(base, ref['href']), 'tags': None}
+        instance = FetchResult(
+            title=ref.text,
+            ref=urljoin(base, ref['href']),
+            tags=None,
+            sourceid=source_id,
+            createdts=int(time.time())
+        )
         posts.append(instance)
 
     return posts
@@ -59,13 +66,13 @@ async def reddit_base(url: str, source_id: int) -> FetchResults:
     for i in range(len(children)):
         if children[i]['data']['score'] < settings.minimum_reddit_score:
             continue
-        instance = {
-            'title': children[i]['data']['title'],
-            'ref': urljoin(base, children[i]['data']['permalink']),
-            'tags': None,
-            'sourceid': source_id,
-            'createdts': int(time.time())
-        }
+        instance = FetchResult(
+            title=children[i]['data']['title'],
+            ref=urljoin(base, children[i]['data']['permalink']),
+            tags=None,
+            sourceid=source_id,
+            createdts=int(time.time())
+        )
         posts.append(instance)
 
     if len(posts) > 20:

@@ -1,4 +1,7 @@
 import importlib
+import dataclasses
+
+from sqlalchemy.dialects.postgresql import insert
 
 from ..loggers import logger
 from ..interfaces import FetchResults, ParserFunc
@@ -13,7 +16,7 @@ for key, val in vars(m).items():
         parsers[name] = val
 
 
-async def work_on_resource(name: str, url: str, source_id: int):
+async def work_on_resource(name: str, url: str, source_id: int) -> None:
     handler_func: ParserFunc = parsers[name]
 
     try:
@@ -24,6 +27,7 @@ async def work_on_resource(name: str, url: str, source_id: int):
         logger.exception(f'Exception: ( {exc} ) occurred while fetching from resource: {name}')
     else:
         post_t = get_table('post')
-        print(f'RESULTS: {results}')
+        logger.warning(f'RESULTS LEN: {len(results)}')
         async with get_db_connection() as conn:
-            await conn.execute(post_t.insert(results))
+            insert_query = insert(post_t).values([dataclasses.asdict(res) for res in results])
+            await conn.execute(insert_query.on_conflict_do_nothing(index_elements=['ref']))

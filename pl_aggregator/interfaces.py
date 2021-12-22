@@ -1,7 +1,7 @@
-from typing import List, Dict, Any, Callable, Awaitable
+from typing import List, Callable, Awaitable
 
 from .schemas import FetchResult
 
-FetchResults = List[Dict[str, Any]]
+FetchResults = List[FetchResult]
 
 ParserFunc = Callable[[str, int], Awaitable[FetchResults]]
