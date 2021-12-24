@@ -1,3 +1,5 @@
+import subprocess
+
 from fastapi import FastAPI
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -6,7 +8,7 @@ from starlette.exceptions import HTTPException
 
 from .configs.config import get_settings
 from .routes import router
-from .loggers import a_logger
+from .loggers import logger
 from .database import db_schemas
 # from .db_service import DBConnectionContext
 # from .error_handlers import http422_error_handler, server_error_handler
@@ -22,6 +24,10 @@ def get_app() -> FastAPI:
     application.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts)
 
     application.include_router(router)
+
+    logger.warning('Starting celery in daemon...')
+    subprocess.Popen(['celery', '-A', 'pl_aggregator.celerytasks', 'worker', '--loglevel=INFO'])  # todo: run in Docker
+    logger.warning('Celery daemon passed...')
 
     return application
 

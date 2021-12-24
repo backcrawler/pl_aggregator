@@ -7,6 +7,8 @@ from pydantic import BaseSettings
 class Settings(BaseSettings):
     allowed_hosts: List[str]
     app_name: str
+    celery_broker_url: str
+    celery_result_backend: str
     db_echo: bool
     db_name: str
     db_host: str
