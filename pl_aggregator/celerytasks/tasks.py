@@ -122,11 +122,13 @@ def my_group():
     chain_results_ids = []
     collections = [(add, [1, 0]), (exc, [0]), (add, [2, 0])]
     logger.warning(f'GOT COLLECTIONS: {collections}')
-    gr = celery.group(*[task.si(*args).on_error(my_on_error_handler.s()) for task, args in collections])
-    logger.warning(f'GOT FR: {gr}')
+    # gr = celery.group(*[task.si(*args).on_error(my_on_error_handler.s()) for task, args in collections])
+    gr = celery.group(*[task.si(*args) for task, args in collections]).on_error(my_on_error_handler.s())
     results = gr.delay()
-    logger.warning(f'GOT RESULTS: {results}')
-    return results
+    to_return = []
+    for child in results.children:
+        to_return.append(child.as_list())
+    return to_return
 
 
 @celeryapp.task
