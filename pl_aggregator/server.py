@@ -26,7 +26,7 @@ def get_app() -> FastAPI:
     application.include_router(router)
 
     logger.warning('Starting celery in daemon...')
-    subprocess.Popen(['celery', '-A', 'pl_aggregator.celerytasks', 'worker', '--loglevel=INFO'])  # todo: run in Docker
+    subprocess.Popen(['celery', '-A', 'pl_aggregator.celerytasks', 'worker', '-B', '--loglevel=INFO'])  # todo: run in Docker
     logger.warning('Celery daemon passed...')
 
     return application

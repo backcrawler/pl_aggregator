@@ -44,6 +44,7 @@ def get_table(name: str) -> ITable:
     return metadata.tables[name]
 
 
+# todo: make migrations
 async def prepare():
     from sqlalchemy.ext.asyncio import create_async_engine
     engine = create_async_engine(DATABASE_URL)

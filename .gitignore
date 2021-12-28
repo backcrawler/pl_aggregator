@@ -3,3 +3,4 @@
 /.idea
 *.pyc
 /pl_aggregator/configs/.env
+celerybeat-schedule
