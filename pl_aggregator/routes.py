@@ -4,7 +4,8 @@ from celery import group, chord, chain
 
 from .database import get_db_connection
 from .loggers import logger
-from .celerytasks import fetch_from_resources, start_chain, add, mul, end_chain, exc, log_err, start_as_group, my_group
+from .celerytasks import fetch_from_resources, start_chain, add, mul, end_chain, exc, log_err, start_as_group, my_group, \
+    wait_for_group, work_for_group
 
 router = APIRouter()
 
@@ -47,8 +48,8 @@ async def test():
 async def test():
     # collections = [(add, [1,0]), (exc, [0]), (add, [2,0])]
     collections = [add.si(1,0), exc.si(0), add.si(2,0)]
-    group = my_group.si()
-    group.delay()
+    chain = my_group.si() | wait_for_group.s() | work_for_group.s()
+    chain.delay()
 
     return JSONResponse(content={'result': 'ok'}, status_code=200)
 

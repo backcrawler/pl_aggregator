@@ -121,13 +121,15 @@ def my_on_error_handler(context, *args, **kwargs):
 def my_group():
     chain_results_ids = []
     collections = [(add, [1, 0]), (exc, [0]), (add, [2, 0])]
-    logger.warning(f'GOT COLLECTIONS: {collections}')
     # gr = celery.group(*[task.si(*args).on_error(my_on_error_handler.s()) for task, args in collections])
     gr = celery.group(*[task.si(*args) for task, args in collections]).on_error(my_on_error_handler.s())
     results = gr.delay()
     to_return = []
     for child in results.children:
         to_return.append(child.as_list())
+
+    logger.warning(f'TO_RETURN: {to_return}')
+
     return to_return
 
 
@@ -162,10 +164,18 @@ def start_as_group():
 @celeryapp.task(bind=True)
 def wait_for_group(self, chain_results_ids):
     logger.warning(f'WAIT GOT RESULTS: {chain_results_ids}')
+    time.sleep(0.2)
+    for cur_chain in chain_results_ids:
+        trailing = AsyncResult(cur_chain[0])
+        logger.warning(f'{trailing} READY: {trailing.ready()}; STATE {trailing.state}')
     return chain_results_ids
 
 
 @celeryapp.task(bind=True)
 def work_for_group(self, chain_results_ids):
     logger.warning(f'WORK GOT RESULTS: {chain_results_ids}')
+    time.sleep(2)
+    for cur_chain in chain_results_ids:
+        trailing = AsyncResult(cur_chain[0])
+        logger.warning(f'{trailing} READY: {trailing.ready()}; STATE {trailing.state}')
     return chain_results_ids
