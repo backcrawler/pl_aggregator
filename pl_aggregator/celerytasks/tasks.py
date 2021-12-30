@@ -120,7 +120,7 @@ def my_on_error_handler(context, *args, **kwargs):
 @celeryapp.task
 def my_group():
     chain_results_ids = []
-    collections = [(add, [1, 0]), (exc, [0]), (add, [2, 0])]
+    collections = [(add, [1, 0]), (add, [2, 0])]
     # gr = celery.group(*[task.si(*args).on_error(my_on_error_handler.s()) for task, args in collections])
     gr = celery.group(*[task.si(*args) for task, args in collections]).on_error(my_on_error_handler.s())
     results = gr.delay()
@@ -178,4 +178,8 @@ def work_for_group(self, chain_results_ids):
     for cur_chain in chain_results_ids:
         trailing = AsyncResult(cur_chain[0])
         logger.warning(f'{trailing} READY: {trailing.ready()}; STATE {trailing.state}')
+        if not trailing.successful():
+            logger.warning(f'TB: {trailing.traceback}')
+        else:
+            logger.warning(f'RESULT: {trailing.result} | {type(trailing.result)}')
     return chain_results_ids
