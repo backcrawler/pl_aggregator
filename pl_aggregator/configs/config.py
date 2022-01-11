@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     host: str
     log_lvl: str
     minimum_reddit_score: int
+    page_len: int
     port: int
     post_days_ttl: int
     version: str

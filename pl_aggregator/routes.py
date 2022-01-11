@@ -6,6 +6,7 @@ from sqlalchemy import select, and_
 from .database import get_db_connection, get_table
 from .celerytasks import clear_expired_rows
 from .loggers import logger
+from .configs import get_settings
 from .schemas import PostsParams, PostsResponse, PostInstance, SitesAvailableResponse
 
 router = APIRouter()
@@ -28,16 +29,25 @@ async def receive_posts(post_params: PostsParams):
     post_t = get_table('post')
     source_t = get_table('source')
     site_t = get_table('site')
+    settings = get_settings()
+
     select_query = select(post_t.c.title, post_t.c.tags, post_t.c.ref, site_t.c.name).select_from(
         post_t.join(source_t, onclause=post_t.c.sourceid == source_t.c.id).join(
             site_t, onclause=source_t.c.siteid == site_t.c.id)
         ).where(
             and_(
                 site_t.c.active == True,
-                site_t.c.lang == 'en',
-                # site_t.c.name.in_==post_params.sites
+                site_t.c.lang.in_(post_params.langs),
+                site_t.c.name.in_(post_params.sites),
             )
+        ).order_by(
+            post_t.c.createdts
+        ).limit(
+            settings.page_len
+        ).offset(
+            (post_params.page - 1) * settings.page_len
         )
+
     async with get_db_connection() as conn:
         posts_cursor = await conn.execute(select_query)
         post_rows = posts_cursor.fetchall()

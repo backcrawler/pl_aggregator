@@ -1,7 +1,7 @@
 import dataclasses
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 @dataclasses.dataclass
@@ -16,6 +16,7 @@ class FetchResult:
 class PostsParams(BaseModel):
     sites: List[str]
     langs: List[str]
+    page: int = Field(default_factory=lambda: 1, ge=1)
 
 
 class PostInstance(BaseModel):
