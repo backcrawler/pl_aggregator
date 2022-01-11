@@ -5,7 +5,6 @@ import sqlalchemy
 from asgiref.sync import async_to_sync
 import celery
 from celery.result import AsyncResult
-from celery import chain
 
 from ..database import get_table, get_db_connection
 from ..loggers import logger
@@ -41,16 +40,29 @@ def start_chain(self):
     time.sleep(1)
 
 
-@celeryapp.task(bind=True)
+def my_deco(f):
+    print(f'TASK FOR DECO: {f}; DIR: {dir(f.request)}; TYPE: {type(f)}')
+    f.shit = 100500
+    print(f'NAME: {f.name}')
+    return f
+
+
+@my_deco
+@celeryapp.task(bind=True, name='huilo_task')
 def add(self, x: int, y: int):
     result = x + y
-    logger.warning(f'add ready: {result}')
+    logger.warning(f'add ready: {result}; add req: {self.request}')
     time.sleep(2)
     logger.warning(f'add competed: {result}')
     return result
 
 
-@celeryapp.task(bind=True)
+def my_failure(*args, **kwargs):
+    print(f'HUI. {args} {kwargs}')
+    return 1
+
+
+@celeryapp.task(bind=True, on_failure=my_failure)
 def exc(self, arg):
     logger.warning('exc ready')
     time.sleep(1)
@@ -110,8 +122,11 @@ class MyTask(celery.Task):
 
 @celeryapp.task
 def my_on_error_handler(context, *args, **kwargs):
+    print(f'HUMAN: {celeryapp.conf.humanize(with_defaults=True, censored=False)}')
+    print(f'CTX EX OPTIONS: {context.as_execution_options()}')
     parent = AsyncResult(context.parent_id, app=celeryapp)
     for child in parent.children[0].children:
+        print(f'CHILD CACHE {child.task_name};')
         child.revoke(terminate=True)
         logger.warning(f'{child} REVOKED')
     # celeryapp.control.revoke(context.parent_id, terminate=True)
@@ -120,7 +135,7 @@ def my_on_error_handler(context, *args, **kwargs):
 @celeryapp.task
 def my_group():
     chain_results_ids = []
-    collections = [(add, [1, 0]), (add, [2, 0])]
+    collections = [(add, [1, 0]), (exc, [1]), (add, [2, 0])]
     # gr = celery.group(*[task.si(*args).on_error(my_on_error_handler.s()) for task, args in collections])
     gr = celery.group(*[task.si(*args) for task, args in collections]).on_error(my_on_error_handler.s())
     results = gr.delay()
@@ -135,16 +150,6 @@ def my_group():
 
 @celeryapp.task
 def start_as_group():
-    def _on_error_handler(excluded_id=None, result_ids=None):
-        logger.warning(f'ON ERROR FOR {excluded_id}; IDS: {result_ids}')
-        for async_res_list in result_ids:
-            for async_res_id in async_res_list:
-                if async_res_id == excluded_id:
-                    logger.warning(f'Skipping shit {excluded_id}')
-                    continue
-                celeryapp.control.revoke(async_res_id, terminate=True)
-                logger.warning(f'RES {async_res_id} JUST REVOKED')
-
     chain_results_ids = []
     collections = [(add, [1,0]), (exc, [0]), (add, [2,0])]
     logger.warning(f'GOT COLLECTIONS: {collections}')
